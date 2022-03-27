@@ -4,10 +4,21 @@
 
 package frc.robot;
 
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.ColorSensorV3;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.Drivetrain;
+import frc.robot.subsystems.Limelight;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -22,6 +33,19 @@ public class Robot extends TimedRobot {
 
   private Drivetrain driveTrain;
 
+  private Limelight limelight;
+
+  private Timer timer;
+
+  I2C.Port i2cPort = I2C.Port.kOnboard;
+
+  ColorSensorV3 colorSensor = new ColorSensorV3(i2cPort);
+
+  CANSparkMax hoodNEO;
+
+
+
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
@@ -32,6 +56,12 @@ public class Robot extends TimedRobot {
     // autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
     driveTrain = new Drivetrain();
+    limelight = new Limelight();
+    timer = new Timer();
+    
+
+   
+
   }
 
   /**
@@ -60,7 +90,10 @@ public class Robot extends TimedRobot {
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
-    
+
+    timer.reset();
+    timer.start();
+
 
     // schedule the autonomous command (example)
     if (autonomousCommand != null) {
@@ -70,7 +103,41 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+
+   
+    System.out.println(limelight.getTa());
+    
+   
+    if(limelight.getTv() == 0){
+      driveTrain.robotDrive.driveCartesian(0,0,0);
+    }
+   else if(limelight.getTa() > 10 && limelight.getTa()<15) {
+    driveTrain.robotDrive.driveCartesian(0,0,0);
+    }
+
+    else if(limelight.getTa() > 15) {
+      driveTrain.robotDrive.driveCartesian(0,0.25,0);
+      }
+    
+    else if(limelight.getTa()<5){
+      driveTrain.robotDrive.driveCartesian(0, -0.35, 0);
+    }
+    else if(Math.abs(limelight.getTx()) < 0.875 && limelight.getTv() == 1 ){
+      driveTrain.robotDrive.driveCartesian(0,-0.25,0);
+      }
+    else if(limelight.getTx()<0){
+      driveTrain.robotDrive.driveCartesian(0,0,-0.25);
+    }
+    else if(limelight.getTx()>0){
+      driveTrain.robotDrive.driveCartesian(0, 0, 0.25);
+    }
+
+    
+    
+   
+    
+  }
 
   @Override
   public void teleopInit() {
@@ -81,14 +148,68 @@ public class Robot extends TimedRobot {
     if (autonomousCommand != null) {
       autonomousCommand.cancel();
     }
+
+   
   }
 
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
 
-    driveTrain.robotDrive.driveCartesian(robotContainer.xboxController.getRawAxis(0)*0.5, robotContainer.xboxController.getRawAxis(1), robotContainer.xboxController.getRawAxis(4)*0.5);
+    Color detectedColor = colorSensor.getColor();
 
+    SmartDashboard.putNumber("Red", detectedColor.red);
+    SmartDashboard.putNumber("Green", detectedColor.green);
+    SmartDashboard.putNumber("Blue", detectedColor.blue);
+    
+    
+
+    driveTrain.robotDrive.driveCartesian(robotContainer.xboxController.getRawAxis(0), robotContainer.xboxController.getRawAxis(1), robotContainer.xboxController.getRawAxis(4)*0.5);
+
+
+    hoodNEO = new CANSparkMax(Constants.HOOD_NEO_PORT, MotorType.kBrushless);
+
+    double adjust = robotContainer.xboxController.getRawAxis(5);
+
+    hoodNEO.set(adjust);
+
+
+    
+
+    
+
+    
+    System.out.println(limelight.getTa());
+
+    
+    // driveTrain.robotDrive.driveCartesian(robotContainer.joystick.getRawAxis(0), robotContainer.joystick.getRawAxis(1), robotContainer.joystick2.getRawAxis(2));
+   
+    
+
+
+    if(robotContainer.xboxController.getAButton()){
+
+      
+      NetworkTableInstance.getDefault().getTable("limelight").getEntry("ledMode").setNumber(1);
+      NetworkTableInstance.getDefault().getTable("limelight").getEntry("camMode").setNumber(1);
+      
+
+
+
+    }
+    else if(robotContainer.xboxController.getBButton()){
+
+      NetworkTableInstance.getDefault().getTable("limelight").getEntry("ledMode").setNumber(3);
+      NetworkTableInstance.getDefault().getTable("limelight").getEntry("camMode").setNumber(0);
+    }
+
+    
+
+   
+
+
+
+  
   
 
   }

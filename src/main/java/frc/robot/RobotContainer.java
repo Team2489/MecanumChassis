@@ -21,7 +21,8 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   
   Joystick joystick = new Joystick(Constants.JOYSTICK_PORT);
-  XboxController xboxController = new XboxController(Constants.JOYSTICK_PORT);
+  XboxController xboxController = new XboxController(Constants.XBOX_CONTROLLER_PORT);
+  Joystick joystick2 = new Joystick(Constants.JOYSTICK2_PORT);
   
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
